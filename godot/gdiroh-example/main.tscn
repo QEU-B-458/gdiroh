@@ -1,9 +1,84 @@
 [gd_scene format=3 uid="uid://bq0ptfeiy4ys3"]
 
-[node name="main" type="Control"]
+[ext_resource type="Script" uid="uid://dr02ojoq6md6q" path="res://main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://tabs/session_tab.tscn" id="2_session"]
+[ext_resource type="PackedScene" path="res://tabs/movement_tab.tscn" id="3_movement"]
+[ext_resource type="PackedScene" path="res://tabs/chat_tab.tscn" id="4_chat"]
+[ext_resource type="PackedScene" uid="uid://dmpvorcrm2xu8" path="res://tabs/assets_tab.tscn" id="5_assets"]
+[ext_resource type="PackedScene" path="res://tabs/world_tab.tscn" id="6_world"]
+[ext_resource type="PackedScene" path="res://tabs/protocol_tab.tscn" id="7_protocol"]
+[ext_resource type="PackedScene" path="res://tabs/diagnose_tab.tscn" id="8_diagnose"]
+
+[node name="main" type="Control" unique_id=328708238]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Layout" type="VBoxContainer" parent="." unique_id=1282392464]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="VBoxContainer" parent="Layout" unique_id=357213189]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Layout/Header" unique_id=1510128708]
+layout_mode = 2
+text = "gdiroh — peer-to-peer networking for Godot"
+
+[node name="Hint" type="Label" parent="Layout/Header" unique_id=1977094869]
+layout_mode = 2
+text = "Each tab is one use case with an endpoint of its own. Start one to begin; stop it to release it."
+autowrap_mode = 3
+
+[node name="Tabs" type="TabContainer" parent="Layout" unique_id=1692639516]
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="Session" parent="Layout/Tabs" unique_id=1790330216 instance=ExtResource("2_session")]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="Movement" parent="Layout/Tabs" unique_id=251392004 instance=ExtResource("3_movement")]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="Chat" parent="Layout/Tabs" unique_id=89940047 instance=ExtResource("4_chat")]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="Assets" parent="Layout/Tabs" unique_id=1387269245 instance=ExtResource("5_assets")]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 3
+
+[node name="World" parent="Layout/Tabs" unique_id=510820148 instance=ExtResource("6_world")]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 4
+
+[node name="Protocol" parent="Layout/Tabs" unique_id=1587874951 instance=ExtResource("7_protocol")]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 5
+
+[node name="Diagnose" parent="Layout/Tabs" unique_id=1818795539 instance=ExtResource("8_diagnose")]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 6

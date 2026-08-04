@@ -1,15 +1,27 @@
 [configuration]
 entry_symbol = "gdext_rust_init"
-compatibility_minimum = 4.1
+compatibility_minimum = 4.2
 reloadable = true
 
+; Libraries keep their canonical file name and are separated by folder instead.
+; Renaming them per-architecture would leave the SONAME inside disagreeing with
+; the file on disk, which Android's loader rejects.
 [libraries]
-linux.debug.x86_64 =     "./libgdiroh.so"
-linux.release.x86_64 =   "./libgdiroh.so"
-windows.debug.x86_64 =   "./gdiroh.dll"
-windows.release.x86_64 = "./gdiroh.dll"
-macos.debug =            "./libgdiroh.dylib"
-macos.release =          "./libgdiroh.dylib"
-macos.debug.arm64 =      "./libgdiroh.dylib"
-macos.release.arm64 =    "./libgdiroh.dylib"
+linux.debug.x86_64 =     "./linux/x86_64/libgdiroh.so"
+linux.release.x86_64 =   "./linux/x86_64/libgdiroh.so"
+linux.debug.arm64 =      "./linux/arm64/libgdiroh.so"
+linux.release.arm64 =    "./linux/arm64/libgdiroh.so"
 
+windows.debug.x86_64 =   "./windows/x86_64/gdiroh.dll"
+windows.release.x86_64 = "./windows/x86_64/gdiroh.dll"
+
+; One universal binary covers both Apple architectures, joined by lipo in CI.
+macos.debug =            "./macos/libgdiroh.dylib"
+macos.release =          "./macos/libgdiroh.dylib"
+
+android.debug.arm64 =    "./android/arm64/libgdiroh.so"
+android.release.arm64 =  "./android/arm64/libgdiroh.so"
+android.debug.arm32 =    "./android/arm32/libgdiroh.so"
+android.release.arm32 =  "./android/arm32/libgdiroh.so"
+android.debug.x86_64 =   "./android/x86_64/libgdiroh.so"
+android.release.x86_64 = "./android/x86_64/libgdiroh.so"

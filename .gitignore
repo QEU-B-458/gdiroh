@@ -2,10 +2,26 @@
 godot/gdiroh-example/.godot
 /godot/gdiroh-example/android/
 
+# syncthing's own files
+.stfolder/
+.stignore
+
+# internal working notes, kept out of the published repo
+ROADMAP.md
+BUGS.md
+NETWORKING.md
+
+# exported game builds
+godot/gdiroh-example/exports/
+
 # ignore the rust build artifacts
 gdiroh/target/
 
 # ignore built binaries in the godot example
-godot/gdiroh-example/addons/gdiroh/*.so
-godot/gdiroh-example/addons/gdiroh/*.dylib
-godot/gdiroh-example/addons/gdiroh/*.dll
+godot/gdiroh-example/addons/gdiroh/linux/
+godot/gdiroh-example/addons/gdiroh/windows/
+godot/gdiroh-example/addons/gdiroh/macos/
+godot/gdiroh-example/addons/gdiroh/android/
+
+# the doc verification harness and its pass are internal
+docpass.sh

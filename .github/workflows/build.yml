@@ -5,164 +5,204 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    working-directory: gdiroh
+
 jobs:
+  check:
+    name: Format, lint and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: gdiroh
+
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --locked
+
   build:
     name: Build - ${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            bin: libgodot_iroh.so
-            final_name: godot_iroh.so
+            artifact: linux/x86_64
+            bin: libgdiroh.so
+
+          # Native arm64 runner, so ring and the other C dependencies build
+          # without a cross toolchain.
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            artifact: linux/arm64
+            bin: libgdiroh.so
 
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
-            bin: godot_iroh.dll
-            final_name: godot_iroh.dll
+            artifact: windows/x86_64
+            bin: gdiroh.dll
 
           - runner: macos-latest
             target: x86_64-apple-darwin
-            bin: libgodot_iroh.dylib
-            final_name: godot_iroh_x64.dylib
+            artifact: macos/x86_64
+            bin: libgdiroh.dylib
 
           - runner: macos-latest
             target: aarch64-apple-darwin
-            bin: libgodot_iroh.dylib
-            final_name: godot_iroh_arm.dylib
+            artifact: macos/arm64
+            bin: libgdiroh.dylib
 
           - runner: ubuntu-latest
             target: aarch64-linux-android
-            bin: libgodot_iroh.so
-            final_name: libgodot_iroh_arm64.so
+            artifact: android/arm64
+            bin: libgdiroh.so
 
           - runner: ubuntu-latest
             target: armv7-linux-androideabi
-            bin: libgodot_iroh.so
-            final_name: libgodot_iroh_armv7.so
+            artifact: android/arm32
+            bin: libgdiroh.so
+
+          - runner: ubuntu-latest
+            target: x86_64-linux-android
+            artifact: android/x86_64
+            bin: libgdiroh.so
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cargo-ndk
-        if: startsWith(matrix.target, 'aarch64-linux-android') || startsWith(matrix.target, 'armv7-linux-androideabi')
-        run: |
-          cargo install cargo-ndk
-          rustup target add aarch64-linux-android
-          rustup target install aarch64-linux-android
-          rustup target install armv7-linux-androideabi
-          rustup target add armv7-linux-androideabi
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: gdiroh
+          key: ${{ matrix.target }}
 
-      - name: Setup Android NDK
-        if: startsWith(matrix.target, 'aarch64-linux-android') || startsWith(matrix.target, 'armv7-linux-androideabi')
-        uses: nttld/setup-ndk@v1.5.0
+      - name: Set up Android NDK
+        if: contains(matrix.target, 'android')
+        uses: nttld/setup-ndk@v1
         with:
           ndk-version: r27c
+          add-to-path: true
 
-      - name: Setup Java JDK
-        if: startsWith(matrix.target, 'aarch64-linux-android') || startsWith(matrix.target, 'armv7-linux-androideabi')
-        uses: actions/setup-java@v4.7.1
+      - name: Install cargo-ndk
+        if: contains(matrix.target, 'android')
+        run: cargo install cargo-ndk --locked
+
+      - name: Build
+        if: ${{ !contains(matrix.target, 'android') }}
+        run: cargo build --locked --release --target ${{ matrix.target }}
+
+      # `-p` is pinned rather than left to cargo-ndk's default, which has moved
+      # between releases. A library built against a lower API level still runs
+      # on higher ones, and 21 is below any Godot 4 Android minimum.
+      - name: Build (Android)
+        if: contains(matrix.target, 'android')
+        run: cargo ndk -t ${{ matrix.target }} -p 21 build --locked --release
+
+      - name: Stage artifact
+        shell: bash
+        run: |
+          mkdir -p staging/${{ matrix.artifact }}
+          cp target/${{ matrix.target }}/release/${{ matrix.bin }} \
+             staging/${{ matrix.artifact }}/${{ matrix.bin }}
+
+      - uses: actions/upload-artifact@v4
         with:
-          java-version: 17
-          distribution: 'temurin'
-          java-package: jdk
-
-      - name: Build rust binary
-        if: startsWith(matrix.target, 'x86_64-unknown-linux-gnu') || startsWith(matrix.target, 'x86_64-pc-windows-msvc') || startsWith(matrix.target, 'x86_64-apple-darwin') || startsWith(matrix.target, 'aarch64-apple-darwin')
-        run: cargo build --verbose --locked --release --target ${{ matrix.target }}
-
-      - name: Build rust binary for android
-        if: startsWith(matrix.target, 'aarch64-linux-android') || startsWith(matrix.target, 'armv7-linux-androideabi')
-        run: cargo ndk -t ${{ matrix.target }} build --release --verbose
-
-      - name: Rename binary to final_name
-        run: mv target/${{ matrix.target }}/release/${{ matrix.bin }} target/${{ matrix.target }}/release/${{ matrix.final_name }}
-
-      - name: Upload rust binary artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.final_name }}
-          path: "target/${{ matrix.target }}/release/${{ matrix.final_name }}"
+          name: ${{ matrix.target }}
+          path: gdiroh/staging/
+          if-no-files-found: error
 
   package:
+    name: Package addon
     runs-on: macos-latest
-    needs: build
-
+    needs: [check, build]
+    defaults:
+      run:
+        # Overrides the workflow default of `gdiroh`. This job assembles the
+        # addon from the repository as a whole, and `download-artifact` resolves
+        # its path against the workspace root regardless of that default — so
+        # leaving it set puts the artifacts and the steps reading them in two
+        # different directories.
+        working-directory: .
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all artifacts
+      - name: Collect build artifacts
         uses: actions/download-artifact@v4
         with:
-          path: addons/godot_iroh
+          path: staging
           merge-multiple: true
 
-      - name: Building a macOS universal lib
-        run: lipo -create -output addons/godot_iroh/godot_iroh.dylib addons/godot_iroh/godot_iroh_x64.dylib addons/godot_iroh/godot_iroh_arm.dylib
-
-      - name: Remove individual binaries
-        run: rm addons/godot_iroh/godot_iroh_x64.dylib addons/godot_iroh/godot_iroh_arm.dylib
-
-      - name: Copy license
-        run: cp LICENSE addons/godot_iroh/.
-
-      - name: Create zip archive
+      - name: Join the macOS binaries into one universal library
         run: |
-          mkdir godot_iroh
-          mv addons godot_iroh/.
-          zip -r godot_iroh.zip godot_iroh
+          lipo -create -output staging/macos/libgdiroh.dylib \
+            staging/macos/x86_64/libgdiroh.dylib \
+            staging/macos/arm64/libgdiroh.dylib
+          rm -r staging/macos/x86_64 staging/macos/arm64
 
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
+      - name: Assemble addon
+        run: |
+          addon=godot/gdiroh-example/addons/gdiroh
+          mkdir -p package/addons/gdiroh
+          cp $addon/gdiroh.gdextension $addon/gdiroh.gdextension.uid package/addons/gdiroh/
+          cp -r staging/* package/addons/gdiroh/
+          cp LICENSE package/addons/gdiroh/
+          (cd package && zip -r ../gdiroh.zip addons)
+
+      - uses: actions/upload-artifact@v4
         with:
           name: package
-          path: godot_iroh.zip
+          path: gdiroh.zip
+          if-no-files-found: error
 
   release:
+    name: Draft release on version bump
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: package
     permissions:
       contents: write
-
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: Check for version change
-        id: version_check
+      - name: Check for a version change
+        id: version
         run: |
-          new_version=$(grep '^version =' Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/' | tr -d '\r')
-          echo "new_version=$new_version" >> $GITHUB_OUTPUT
-          git show HEAD~1:Cargo.toml > old_Cargo.toml
-          old_version=$(grep '^version =' old_Cargo.toml | head -n1 | sed -E 's/version = "(.*)"/\1/' | tr -d '\r')
-          echo "old_version=$old_version" >> $GITHUB_OUTPUT
-          if [ "$new_version" != "$old_version" ]; then
-            echo "version_changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "version_changed=false" >> $GITHUB_OUTPUT
-          fi
+          new=$(grep -m1 '^version =' Cargo.toml | sed -E 's/version = "(.*)"/\1/' | tr -d '\r')
+          git show HEAD~1:gdiroh/Cargo.toml > /tmp/old_Cargo.toml 2>/dev/null || touch /tmp/old_Cargo.toml
+          old=$(grep -m1 '^version =' /tmp/old_Cargo.toml | sed -E 's/version = "(.*)"/\1/' | tr -d '\r')
+          echo "new=$new" >> $GITHUB_OUTPUT
+          [ "$new" != "$old" ] && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
 
-      - name: Download package artifact
-        if: steps.version_check.outputs.version_changed == 'true'
+      - name: Download package
+        if: steps.version.outputs.changed == 'true'
         uses: actions/download-artifact@v4
         with:
           name: package
           path: .
 
-      - name: Create Release
-        if: steps.version_check.outputs.version_changed == 'true'
-        id: create_release
-        uses: softprops/action-gh-release@v1
+      - name: Create release
+        if: steps.version.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version_check.outputs.new_version }}
+          tag_name: v${{ steps.version.outputs.new }}
           generate_release_notes: true
-          files: godot_iroh.zip
+          files: gdiroh.zip
           draft: true

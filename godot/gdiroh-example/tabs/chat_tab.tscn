@@ -1,0 +1,95 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://tabs/chat_tab.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://common/copy_field.tscn" id="2_copy"]
+[ext_resource type="PackedScene" path="res://common/log_panel.tscn" id="3_log"]
+
+[node name="Chat" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+script = ExtResource("1_script")
+slug = "chat"
+
+[node name="Blurb" type="Label" parent="."]
+layout_mode = 2
+text = "A room chat over gossip: everyone on the topic hears everyone, with no server holding the room."
+autowrap_mode = 3
+
+[node name="Lifecycle" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Start" type="Button" parent="Lifecycle"]
+layout_mode = 2
+text = "Start endpoint"
+
+[node name="Stop" type="Button" parent="Lifecycle"]
+layout_mode = 2
+disabled = true
+text = "Stop"
+
+[node name="Random" type="CheckBox" parent="Lifecycle"]
+layout_mode = 2
+tooltip_text = "start with a throwaway id — for extra copies sharing user://, like the editor's multi-instance run"
+text = "Random id"
+
+[node name="Status" type="Label" parent="Lifecycle"]
+layout_mode = 2
+text = "stopped"
+
+[node name="Id" parent="." instance=ExtResource("2_copy")]
+layout_mode = 2
+
+[node name="Ticket" parent="." instance=ExtResource("2_copy")]
+layout_mode = 2
+
+[node name="Subscribe" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Topic" type="LineEdit" parent="Subscribe"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+text = "gdiroh-example/lobby"
+tooltip_text = "the room's name — both sides type the same one"
+
+[node name="Bootstrap" type="LineEdit" parent="Subscribe"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "a ticket of someone already in the room, or empty to be first"
+
+[node name="Join" type="Button" parent="Subscribe"]
+layout_mode = 2
+disabled = true
+text = "Subscribe"
+
+[node name="Say" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Message" type="LineEdit" parent="Say"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "say something to the room"
+
+[node name="NearOnly" type="CheckBox" parent="Say"]
+layout_mode = 2
+tooltip_text = "send only to directly attached peers, with no onward relaying"
+text = "Neighbours only"
+
+[node name="Send" type="Button" parent="Say"]
+layout_mode = 2
+disabled = true
+text = "Send"
+
+[node name="Neighbours" type="Label" parent="."]
+layout_mode = 2
+text = "neighbours: none"
+
+[node name="Log" parent="." instance=ExtResource("3_log")]
+layout_mode = 2
+size_flags_vertical = 3

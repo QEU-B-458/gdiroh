@@ -6,5 +6,57 @@ edition = "2024"
 [lib]
 crate-type = ["cdylib"] # this tells rust to compile the crate as a dynamic C library
 
+[features]
+# On by default so a developer building this gets the documentation. Turn it off
+# for a shipped game — `cargo build --no-default-features` — because gdext warns
+# at startup in exported builds that it has embedded plaintext documentation
+# into the binary. Godot only reads the docs at editor init, so an exported
+# build gains nothing from carrying them.
+default = ["editor-docs"]
+editor-docs = ["godot/register-docs"]
+
 [dependencies]
-godot = "0.4.2"
+# Both versions are pinned exactly and must be bumped together. `godot-core` is
+# an internal crate of gdext, depended on directly for one reason: the zero-copy
+# packet methods on MultiplayerPeerExtension take `meta::RawPtr`, which the
+# `godot` facade does not re-export. If the two ever drift apart, the RawPtr in
+# the trait signature stops being the RawPtr we can name, and IrohPeer will not
+# compile. Expected to become unnecessary in gdext 0.6.
+godot = "=0.5.4"
+godot-core = "=0.5.4"
+anyhow = "1"
+
+# `metrics` is on because the counters are exposed to GDScript. Left off, every
+# counter still exists but reads zero, which is worse than not offering them at
+# all. `portmapper` opens another path through home routers, and `tls-ring`
+# supplies the crypto provider iroh requires.
+iroh = { version = "1.0.3", default-features = false, features = [
+    "metrics",
+    "tls-ring",
+    "portmapper",
+    "fast-apple-datapath",
+] }
+
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "io-util"] }
+bytes = "1.12.1"
+iroh-tickets = "1.0.0"
+iroh-mdns-address-lookup = "0.4.0"
+iroh-gossip = { version = "0.101.0", default-features = false, features = ["net"] }
+# `fs-store` is what lets a game keep transferred assets across runs; `rpc` is
+# not wanted, since everything here is in-process.
+iroh-blobs = { version = "0.103.0", default-features = false, features = ["fs-store"] }
+iroh-docs = { version = "0.101.0", default-features = false, features = ["fs-store"] }
+# Topic names are hashed rather than asking script for 32 raw bytes.
+blake3 = "1"
+# Named directly so the metrics traits can be spelled; iroh does not re-export
+# them. Same version iroh itself depends on.
+iroh-metrics = "1.0.1"
+# `GossipReceiver` is a `Stream`; this is the smallest way to poll one.
+futures-lite = "2"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }

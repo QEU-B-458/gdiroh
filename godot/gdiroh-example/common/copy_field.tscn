@@ -1,0 +1,28 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://common/copy_field.gd" id="1_copyfield"]
+
+[node name="CopyField" type="HBoxContainer"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 31.0
+grow_horizontal = 2
+theme_override_constants/separation = 6
+script = ExtResource("1_copyfield")
+
+[node name="Caption" type="Label" parent="."]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+text = "Value"
+
+[node name="Value" type="LineEdit" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+placeholder_text = "(none yet)"
+caret_blink = true
+
+[node name="Copy" type="Button" parent="."]
+layout_mode = 2
+disabled = true
+text = "Copy"

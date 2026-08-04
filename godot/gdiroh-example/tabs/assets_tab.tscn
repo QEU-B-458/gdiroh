@@ -1,0 +1,111 @@
+[gd_scene format=3 uid="uid://dmpvorcrm2xu8"]
+
+[ext_resource type="Script" uid="uid://bn238ykue0wia" path="res://tabs/assets_tab.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://common/copy_field.tscn" id="2_copy"]
+[ext_resource type="PackedScene" path="res://common/log_panel.tscn" id="3_log"]
+
+[node name="Assets" type="VBoxContainer" unique_id=1156119858]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+script = ExtResource("1_script")
+slug = "assets"
+
+[node name="Blurb" type="Label" parent="." unique_id=1127923844]
+layout_mode = 2
+text = "Hand an asset to another peer. Blobs are named by their hash, so what arrives is verified and repeats are free."
+autowrap_mode = 3
+
+[node name="Lifecycle" type="HBoxContainer" parent="." unique_id=1803337961]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Start" type="Button" parent="Lifecycle" unique_id=1982217374]
+layout_mode = 2
+text = "Start endpoint"
+
+[node name="Stop" type="Button" parent="Lifecycle" unique_id=1298919263]
+layout_mode = 2
+disabled = true
+text = "Stop"
+
+[node name="Random" type="CheckBox" parent="Lifecycle" unique_id=1142164783]
+layout_mode = 2
+tooltip_text = "start with a throwaway id — for extra copies sharing user://, like the editor's multi-instance run"
+text = "Random id"
+
+[node name="Status" type="Label" parent="Lifecycle" unique_id=175991236]
+layout_mode = 2
+text = "stopped"
+
+[node name="Id" parent="." unique_id=1765385407 instance=ExtResource("2_copy")]
+layout_mode = 2
+
+[node name="Ticket" parent="." unique_id=823172790 instance=ExtResource("2_copy")]
+layout_mode = 2
+
+[node name="Actions" type="HBoxContainer" parent="." unique_id=1750412111]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Publish" type="Button" parent="Actions" unique_id=353314607]
+layout_mode = 2
+disabled = true
+text = "Publish a demo asset"
+
+[node name="Ticket" type="LineEdit" parent="Actions" unique_id=1681642626]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "blob ticket from the other peer"
+
+[node name="Fetch" type="Button" parent="Actions" unique_id=1854530498]
+layout_mode = 2
+disabled = true
+text = "Fetch"
+
+[node name="Store" type="HBoxContainer" parent="." unique_id=1462916640]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="AddFile" type="Button" parent="Store" unique_id=1306348407]
+layout_mode = 2
+tooltip_text = "store an actual file from disk"
+disabled = true
+text = "Add a file"
+
+[node name="Export" type="Button" parent="Store" unique_id=189448832]
+layout_mode = 2
+tooltip_text = "write the last blob out to user://gdiroh_exported.bin"
+disabled = true
+text = "Export"
+
+[node name="ListBlobs" type="Button" parent="Store" unique_id=1111442956]
+layout_mode = 2
+disabled = true
+text = "List blobs"
+
+[node name="ListTags" type="Button" parent="Store" unique_id=1641901349]
+layout_mode = 2
+disabled = true
+text = "List tags"
+
+[node name="Untag" type="Button" parent="Store" unique_id=469979305]
+layout_mode = 2
+tooltip_text = "untagged blobs are what garbage collection may reclaim"
+disabled = true
+text = "Untag"
+
+[node name="Hash" parent="." unique_id=221348819 instance=ExtResource("2_copy")]
+layout_mode = 2
+
+[node name="BlobTicket" parent="." unique_id=2020692067 instance=ExtResource("2_copy")]
+layout_mode = 2
+
+[node name="Progress" type="ProgressBar" parent="." unique_id=1254154477]
+layout_mode = 2
+
+[node name="Log" parent="." unique_id=252768200 instance=ExtResource("3_log")]
+layout_mode = 2

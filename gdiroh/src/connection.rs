@@ -15,6 +15,8 @@
 //! Keep the returned object in a variable. It is reference counted, so dropping
 //! the last reference closes the connection.
 
+use std::collections::VecDeque;
+
 use bytes::Bytes;
 use godot::classes::RefCounted;
 use godot::prelude::*;
@@ -48,6 +50,12 @@ pub struct IrohConnection {
     /// Present once the handshake is done. Accepted connections have it from
     /// the outset.
     connection: Option<Connection>,
+    /// Datagrams handed over by [`Self::handle`], waiting for
+    /// [`Self::get_datagram`]. Every datagram lands here regardless of
+    /// whether anyone reads it this way — [signal datagram_received] fires
+    /// for the same one either way, so a caller uses one path or the other,
+    /// not both.
+    datagrams: VecDeque<PackedByteArray>,
     ticking: bool,
     base: Base<RefCounted>,
 }
@@ -69,6 +77,7 @@ impl IrohConnection {
         let mut object = Gd::from_init_fn(|base| Self {
             events: Some(events),
             connection,
+            datagrams: VecDeque::new(),
             ticking: false,
             base,
         });
@@ -127,6 +136,9 @@ impl IrohConnection {
             }
             Event::Datagram(data) => {
                 let data = PackedByteArray::from(&data[..]);
+                // Cheap: PackedByteArray is copy-on-write, so this is a
+                // refcount bump, not a second copy of the bytes.
+                self.datagrams.push_back(data.clone());
                 self.emit_later("datagram_received", &[data.to_variant()]);
             }
             Event::Closed(reason) => {
@@ -163,6 +175,12 @@ impl IrohConnection {
     /// Emitted for each datagram. Unreliable and unordered — a datagram may be
     /// lost or overtaken, and is dropped entirely if it exceeds
     /// [method max_datagram_size].
+    ///
+    /// This only ever reaches script on a frame tick, since that is what
+    /// drives it. [method get_available_datagram_count] and
+    /// [method get_datagram] read the same datagrams without waiting for
+    /// one. Use this signal or those calls — not both on the same
+    /// connection, since together they deliver every datagram twice.
     #[signal]
     fn datagram_received(data: PackedByteArray);
 
@@ -186,10 +204,10 @@ impl IrohConnection {
     #[constant]
     const PATH_DIRECT: i32 = 2;
 
-    /// Drains work finished on the runtime. Connected to `SceneTree`'s
-    /// `process_frame`, so it always runs on the main thread.
-    #[func]
-    fn _drain(&mut self) {
+    /// Pulls in whatever the runtime has produced since the last call, with
+    /// no waiting — the counterpart used by [`Self::_drain`] (on a frame
+    /// tick) and by [`Self::get_available_datagram_count`] (on demand).
+    fn drain_pending(&mut self) {
         let Some(events) = self.events.as_mut() else {
             return;
         };
@@ -203,6 +221,13 @@ impl IrohConnection {
         for event in pending {
             self.handle(event);
         }
+    }
+
+    /// Drains work finished on the runtime. Connected to `SceneTree`'s
+    /// `process_frame`, so it always runs on the main thread.
+    #[func]
+    fn _drain(&mut self) {
+        self.drain_pending();
     }
 
     /// Opens a stream to the remote, which surfaces there as
@@ -237,6 +262,46 @@ impl IrohConnection {
             Err(err) => {
                 crate::log::warning!("datagram not sent: {err}");
                 false
+            }
+        }
+    }
+
+    /// How many whole datagrams [method get_datagram] can return right now
+    /// without waiting.
+    ///
+    /// Pulls in whatever the network has delivered since the last call, the
+    /// same way [method IrohStream.get_available_bytes] does — no frame
+    /// tick involved, so this can be checked several times in the same
+    /// frame and see new datagrams each time.
+    #[func]
+    fn get_available_datagram_count(&mut self) -> i32 {
+        self.drain_pending();
+        self.datagrams.len().min(i32::MAX as usize) as i32
+    }
+
+    /// Takes the next datagram. Waits for one if
+    /// [method get_available_datagram_count] was not checked first, or was
+    /// zero — with no timeout, the same as [method IrohStream.get_data].
+    ///
+    /// Returns empty once the connection ends with nothing left queued;
+    /// check [method is_open] to tell that apart from a genuine empty
+    /// datagram, which is valid and does arrive this way too.
+    #[func]
+    fn get_datagram(&mut self) -> PackedByteArray {
+        if let Some(data) = self.datagrams.pop_front() {
+            return data;
+        }
+        loop {
+            let Some(events) = self.events.as_mut() else {
+                return PackedByteArray::new();
+            };
+            match events.recv_blocking() {
+                Some(Event::Datagram(data)) => return PackedByteArray::from(&data[..]),
+                // Not a datagram: handle it the normal way (it may close the
+                // connection, which is what clears `self.events` and ends
+                // this loop on the next pass) and keep waiting.
+                Some(other) => self.handle(other),
+                None => return PackedByteArray::new(),
             }
         }
     }

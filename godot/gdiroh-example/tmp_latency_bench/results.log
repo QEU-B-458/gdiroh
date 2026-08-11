@@ -1,0 +1,95 @@
+=== 2026-08-04T13:23:35Z commit=84ddb58 (dirty) iterations=300 size=64b ===
+RESULT transport=stream n=300 size=64 min_us=6680 avg_us=7067.4 p50_us=6886 p95_us=6985 max_us=14546 drops=0 corrupt=0
+RESULT transport=stream_blocking n=300 size=64 min_us=109 avg_us=193.2 p50_us=159 p95_us=226 max_us=8344 drops=0 corrupt=0
+RESULT transport=datagram n=300 size=64 min_us=6564 avg_us=6906.7 p50_us=6906 p95_us=6959 max_us=7042 drops=0 corrupt=0
+CASE transport=stream label=empty size=0 ok=true us=6887
+CASE transport=stream label=one_byte_zero size=1 ok=true us=6786
+CASE transport=stream label=one_byte_ff size=1 ok=true us=6880
+CASE transport=stream label=hundred_zero size=100 ok=true us=6823
+CASE transport=stream label=hundred_ff size=100 ok=true us=6863
+CASE transport=stream label=hundred_random size=100 ok=true us=6861
+CASE transport=stream label=embedded_null size=101 ok=true us=6814
+CASE transport=stream label=one_megabyte_random size=1048576 ok=true us=15580
+RESULT transport=correctness_stream passed=8 failed=0
+CASE transport=datagram label=empty size=8 sent_ok=true arrived=true expect_arrive=true ok=true us=13719
+CASE transport=datagram label=one_byte_zero size=9 sent_ok=true arrived=true expect_arrive=true ok=true us=13741
+CASE transport=datagram label=one_byte_ff size=9 sent_ok=true arrived=true expect_arrive=true ok=true us=13741
+CASE transport=datagram label=hundred_zero size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13696
+CASE transport=datagram label=hundred_ff size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13733
+CASE transport=datagram label=hundred_random size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13728
+CASE transport=datagram label=embedded_null size=109 sent_ok=true arrived=true expect_arrive=true ok=true us=13748
+CASE transport=datagram label=cap+0 size=1414 sent_ok=true arrived=true expect_arrive=true ok=true us=13681
+CASE transport=datagram label=cap+1 size=1415 sent_ok=false arrived=false expect_arrive=false ok=true us=79
+RESULT transport=correctness_datagram passed=9 failed=0
+=== 2026-08-04T13:55:21Z commit=84ddb58 (dirty) iterations=20 size=64b ===
+RESULT transport=stream n=20 size=64 min_us=6811 avg_us=7225.4 p50_us=6881 p95_us=13741 max_us=13741 drops=0 corrupt=0
+RESULT transport=stream_blocking n=20 size=64 min_us=128 avg_us=489.9 p50_us=168 p95_us=6519 max_us=6519 drops=0 corrupt=0
+RESULT transport=datagram n=20 size=64 min_us=6701 avg_us=7540.1 p50_us=6922 p95_us=13787 max_us=13787 drops=0 corrupt=0
+RESULT transport=datagram_blocking n=20 size=64 min_us=118 avg_us=166.9 p50_us=155 p95_us=321 max_us=321 drops=0 corrupt=0
+CASE transport=stream label=empty size=0 ok=true us=6931
+CASE transport=stream label=one_byte_zero size=1 ok=true us=6711
+CASE transport=stream label=one_byte_ff size=1 ok=true us=6830
+CASE transport=stream label=hundred_zero size=100 ok=true us=6826
+CASE transport=stream label=hundred_ff size=100 ok=true us=6823
+CASE transport=stream label=hundred_random size=100 ok=true us=6865
+CASE transport=stream label=embedded_null size=101 ok=true us=6774
+CASE transport=stream label=one_megabyte_random size=1048576 ok=true us=15946
+RESULT transport=correctness_stream passed=8 failed=0
+CASE transport=datagram label=empty size=8 sent_ok=true arrived=true expect_arrive=true ok=true us=13727
+CASE transport=datagram label=one_byte_zero size=9 sent_ok=true arrived=true expect_arrive=true ok=true us=13709
+CASE transport=datagram label=one_byte_ff size=9 sent_ok=true arrived=true expect_arrive=true ok=true us=13729
+CASE transport=datagram label=hundred_zero size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13715
+CASE transport=datagram label=hundred_ff size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13720
+CASE transport=datagram label=hundred_random size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13702
+CASE transport=datagram label=embedded_null size=109 sent_ok=true arrived=true expect_arrive=true ok=true us=13881
+CASE transport=datagram label=cap+0 size=1414 sent_ok=true arrived=true expect_arrive=true ok=true us=20317
+CASE transport=datagram label=cap+1 size=1415 sent_ok=false arrived=false expect_arrive=false ok=true us=89
+RESULT transport=correctness_datagram passed=9 failed=0
+=== 2026-08-04T13:55:36Z commit=84ddb58 (dirty) iterations=300 size=64b ===
+RESULT transport=stream n=300 size=64 min_us=6050 avg_us=6931.6 p50_us=6887 p95_us=6940 max_us=13783 drops=0 corrupt=0
+RESULT transport=stream_blocking n=300 size=64 min_us=122 avg_us=189.6 p50_us=166 p95_us=217 max_us=3376 drops=0 corrupt=0
+RESULT transport=datagram n=300 size=64 min_us=6825 avg_us=6948.2 p50_us=6917 p95_us=6970 max_us=13741 drops=0 corrupt=0
+RESULT transport=datagram_blocking n=300 size=64 min_us=109 avg_us=153.4 p50_us=152 p95_us=195 max_us=274 drops=0 corrupt=0
+CASE transport=stream label=empty size=0 ok=true us=13732
+CASE transport=stream label=one_byte_zero size=1 ok=true us=13720
+CASE transport=stream label=one_byte_ff size=1 ok=true us=13734
+CASE transport=stream label=hundred_zero size=100 ok=true us=13774
+CASE transport=stream label=hundred_ff size=100 ok=true us=13759
+CASE transport=stream label=hundred_random size=100 ok=true us=13664
+CASE transport=stream label=embedded_null size=101 ok=true us=13724
+CASE transport=stream label=one_megabyte_random size=1048576 ok=true us=15649
+RESULT transport=correctness_stream passed=8 failed=0
+CASE transport=datagram label=empty size=8 sent_ok=true arrived=true expect_arrive=true ok=true us=13735
+CASE transport=datagram label=one_byte_zero size=9 sent_ok=true arrived=true expect_arrive=true ok=true us=13759
+CASE transport=datagram label=one_byte_ff size=9 sent_ok=true arrived=true expect_arrive=true ok=true us=13701
+CASE transport=datagram label=hundred_zero size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13662
+CASE transport=datagram label=hundred_ff size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13744
+CASE transport=datagram label=hundred_random size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13728
+CASE transport=datagram label=embedded_null size=109 sent_ok=true arrived=true expect_arrive=true ok=true us=13746
+CASE transport=datagram label=cap+0 size=1414 sent_ok=true arrived=true expect_arrive=true ok=true us=13680
+CASE transport=datagram label=cap+1 size=1415 sent_ok=false arrived=false expect_arrive=false ok=true us=56
+RESULT transport=correctness_datagram passed=9 failed=0
+=== 2026-08-04T14:37:45Z commit=84ddb58 (dirty) iterations=20 size=128b ===
+RESULT transport=stream n=20 size=128 min_us=6832 avg_us=7223.1 p50_us=6892 p95_us=13707 max_us=13707 drops=0 corrupt=0
+RESULT transport=stream_blocking n=20 size=128 min_us=162 avg_us=459.9 p50_us=212 p95_us=5093 max_us=5093 drops=0 corrupt=0
+RESULT transport=datagram n=20 size=128 min_us=6713 avg_us=10011.0 p50_us=7391 p95_us=13886 max_us=13886 drops=0 corrupt=0
+RESULT transport=datagram_blocking n=20 size=128 min_us=133 avg_us=190.4 p50_us=189 p95_us=285 max_us=285 drops=0 corrupt=0
+CASE transport=stream label=empty size=0 ok=true us=6828
+CASE transport=stream label=one_byte_zero size=1 ok=true us=6819
+CASE transport=stream label=one_byte_ff size=1 ok=true us=6878
+CASE transport=stream label=hundred_zero size=100 ok=true us=6828
+CASE transport=stream label=hundred_ff size=100 ok=true us=6874
+CASE transport=stream label=hundred_random size=100 ok=true us=6783
+CASE transport=stream label=embedded_null size=101 ok=true us=6812
+CASE transport=stream label=one_megabyte_random size=1048576 ok=true us=15653
+RESULT transport=correctness_stream passed=8 failed=0
+CASE transport=datagram label=empty size=8 sent_ok=true arrived=true expect_arrive=true ok=true us=13761
+CASE transport=datagram label=one_byte_zero size=9 sent_ok=true arrived=true expect_arrive=true ok=true us=13644
+CASE transport=datagram label=one_byte_ff size=9 sent_ok=true arrived=true expect_arrive=true ok=true us=13736
+CASE transport=datagram label=hundred_zero size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13719
+CASE transport=datagram label=hundred_ff size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13722
+CASE transport=datagram label=hundred_random size=108 sent_ok=true arrived=true expect_arrive=true ok=true us=13721
+CASE transport=datagram label=embedded_null size=109 sent_ok=true arrived=true expect_arrive=true ok=true us=13736
+CASE transport=datagram label=cap+0 size=1414 sent_ok=true arrived=true expect_arrive=true ok=true us=13637
+CASE transport=datagram label=cap+1 size=1415 sent_ok=false arrived=false expect_arrive=false ok=true us=79
+RESULT transport=correctness_datagram passed=9 failed=0

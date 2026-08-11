@@ -454,7 +454,7 @@ expect "sample stream conversed"   "$logs/sample_stream.log" 'reply: SECOND SHOU
 expect "sample datagrams landed"   "$logs/sample_datagrams.log" 'alice caught [1-9][0-9]* of 30'
 expect "sample gossip heard"       "$logs/sample_gossip.log" 'bob heard: the door creaks open'
 expect "sample session rpc"        "$logs/sample_session.log" 'alice heard over rpc: hello over rpc'
-expect "sample packets unpacked"   "$logs/sample_packets.log" 'alice got, from peer 2: opcode 7, value 3\.5, note: packed by hand'
+expect "sample packets delivered"  "$logs/sample_packets.log" 'alice got, from peer 2: packed by hand'
 
 # Every tab binds an identity of its own, so two of alice's tabs must never
 # report the same id.

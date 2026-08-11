@@ -8,11 +8,10 @@ extends Node
 ## or attach it to any node in a scene and press play.
 ##
 ## an IrohPeer is a MultiplayerPeer, and a MultiplayerPeer is a PacketPeer —
-## it can be used bare, with put_packet and get_packet, never assigned to
-## multiplayer.multiplayer_peer. two rules come with going bare: poll() is
-## yours to call every frame (with no MultiplayerAPI over the peer, nobody
-## else will), and the typed put_* methods live on StreamPeerBuffer, which
-## builds the bytes a packet then carries whole.
+## it can be used bare, with put_packet and get_packet addressed by peer id,
+## never assigned to multiplayer.multiplayer_peer and with no @rpc in sight.
+## going bare comes with one rule: poll() is yours to call every frame — with
+## no MultiplayerAPI over the peer, nobody else will.
 
 
 func _ready() -> void:
@@ -36,40 +35,28 @@ func _ready() -> void:
 		await _tick(host_peer, join_peer)
 	print("bob is in, as peer ", join_peer.get_unique_id())
 
-	# bob packs a typed packet by hand. the buffer takes the put_* calls, and
-	# whatever it holds goes out as one packet
-	var packing := StreamPeerBuffer.new()
-	packing.put_u8(7)
-	packing.put_float(3.5)
-	packing.put_utf8_string("packed by hand")
+	# bob sends one packet straight to alice — no rpc, no stream, just bytes
+	# addressed by peer id, the way ordinary multiplayer traffic is
 	join_peer.set_target_peer(0)
-	join_peer.put_packet(packing.data_array)
+	join_peer.put_packet("packed by hand".to_utf8_buffer())
 
-	# alice reads it out the same way, in the same order. who sent it is read
-	# before get_packet, because it describes the packet about to be returned
+	# alice reads it back. who sent it is read before get_packet, because it
+	# describes the packet about to be returned
 	while host_peer.get_available_packet_count() == 0:
 		await _tick(host_peer, join_peer)
 	var sender := host_peer.get_packet_peer()
-	var unpacking := StreamPeerBuffer.new()
-	unpacking.data_array = host_peer.get_packet()
-	print("alice got, from peer %d: opcode %d, value %.1f, note: %s" % [
-		sender, unpacking.get_u8(), unpacking.get_float(), unpacking.get_utf8_string()
-	])
+	print("alice got, from peer %d: %s" % [sender, host_peer.get_packet().get_string_from_utf8()])
 
 	# the answer goes to that one peer only, unreliable — a datagram under
 	# the hood, the mode a game's movement traffic rides
 	host_peer.set_target_peer(sender)
 	host_peer.set_transfer_mode(MultiplayerPeer.TRANSFER_MODE_UNRELIABLE)
-	var reply := StreamPeerBuffer.new()
-	reply.put_utf8_string("heard you")
-	host_peer.put_packet(reply.data_array)
+	host_peer.put_packet("heard you".to_utf8_buffer())
 
 	while join_peer.get_available_packet_count() == 0:
 		await _tick(host_peer, join_peer)
 	var as_datagram := join_peer.get_packet_mode() == MultiplayerPeer.TRANSFER_MODE_UNRELIABLE
-	var opening := StreamPeerBuffer.new()
-	opening.data_array = join_peer.get_packet()
-	print("bob got back: ", opening.get_utf8_string(), " — carried as a datagram: ", as_datagram)
+	print("bob got back: ", join_peer.get_packet().get_string_from_utf8(), " — carried as a datagram: ", as_datagram)
 
 	host_peer.close()
 	join_peer.close()

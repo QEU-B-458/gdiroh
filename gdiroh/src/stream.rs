@@ -29,20 +29,31 @@ use crate::raw::{Incoming, Stream};
 
 /// One bidirectional stream on an [IrohConnection], as a Godot [StreamPeer].
 ///
-/// Being a [StreamPeer] means [code]get_data[/code], [code]put_data[/code],
-/// [code]get_available_bytes[/code] and the whole [code]get_u8[/code] /
-/// [code]get_string[/code] / [code]get_var[/code] family work exactly as they do
-/// on any other Godot stream. Comes from [method IrohConnection.open_stream] or
-/// its [code]stream_opened[/code] signal.
+/// Comes from [method IrohConnection.open_stream] or the connection's
+/// [code]stream_opened[/code] signal. Both ends can write, whichever opened
+/// it. A stream is usable the moment it is opened — but the other peer only
+/// learns it exists when its first bytes arrive.
 ///
-/// Like Godot's TCP stream, [code]get_data[/code] and the helpers built on it
-/// wait for the bytes they ask for, so [code]get_string[/code] after the other
-/// side's [code]put_string[/code] just works — but asking for bytes the other
-/// side never sends waits until the stream ends. Code that must never wait
-/// polls [code]get_available_bytes[/code] and reads with
-/// [code]get_partial_data[/code] or exact sizes, the way the example does.
+/// Reading works like Godot's TCP stream: [code]get_data[/code] and the
+/// helpers built on it — [code]get_string[/code], [code]get_var[/code], the
+/// [code]get_u8[/code] family — wait for the bytes they ask for, with no
+/// timeout. A peer that never sends looks like a freeze, not an error. If
+/// the stream ends before enough bytes exist, [code]get_data[/code] returns
+/// [code]ERR_UNAVAILABLE[/code] with nothing consumed, and
+/// [code]get_partial_data[/code] can still collect what did arrive. Code
+/// that must never wait checks [code]get_available_bytes[/code] before
+/// reading.
 ///
-/// Both ends can write, whichever opened it.
+/// Writing never waits and is never partial: every put queues the bytes and
+/// returns, and the queue has no limit. Only [code]put_data[/code] reports a
+/// finished or dead stream — the typed puts return nothing, so their
+/// failures are silent. OK means queued, not delivered.
+///
+/// A stream has no message boundaries of its own. Either open a stream per
+/// message and let [method finish] mark the end, or keep one stream and
+/// frame every message — [code]put_utf8_string[/code] and
+/// [code]get_utf8_string[/code] are a matched pair for exactly that. Both
+/// peers have to pick the same shape.
 #[derive(GodotClass)]
 // `no_init` because streams come from a connection, never from `new()`.
 // `tool` for the same reason `IrohPeer` needs it: Godot instantiates extension
@@ -288,19 +299,26 @@ impl IStreamPeerExtension for IrohStream {
 
 #[godot_api]
 impl IrohStream {
-    /// Whether the remote might still send more.
+    /// Whether the other peer might still send more.
     ///
-    /// Goes false once it finishes writing or the stream fails. Bytes already
-    /// buffered stay readable either way — check `get_available_bytes()` before
-    /// treating this as end of data.
+    /// Goes false once they finish, the stream fails, or [method close] is
+    /// called here. The end of a stream often lands together with its last
+    /// bytes, and those stay readable — check [code]get_available_bytes[/code]
+    /// before treating this as end of data.
+    ///
+    /// It never waits; it reports what has already arrived.
     #[func]
     fn is_open(&self) -> bool {
         let state = self.drained();
         state.ended.is_none() && state.stream.is_some()
     }
 
-    /// Why the stream ended, or an empty string if it ended cleanly or is still
-    /// open.
+    /// Why the stream ended, or an empty string.
+    ///
+    /// Empty also just means "not ended yet", so pair it with
+    /// [method is_open]. A clean [method finish] from the other peer stays
+    /// empty; a failure or an abort leaves its reason here. Our own
+    /// [method close] leaves it empty too — closing is not an error.
     #[func]
     fn get_error(&self) -> GString {
         match &self.drained().ended {
@@ -309,10 +327,18 @@ impl IrohStream {
         }
     }
 
-    /// Closes our write half once everything queued has gone out.
+    /// Says we are done sending. Everything already written still goes out
+    /// first.
     ///
-    /// The remote sees a clean end of stream. Reading carries on, so this is how
-    /// you say "that is the whole request" and then wait for the reply.
+    /// The other peer reads a clean end of stream: their [method is_open] goes
+    /// false and their [method get_error] stays empty. Reading here carries on,
+    /// so this is how you say "that is the whole request" and then wait for
+    /// the reply.
+    ///
+    /// After [method close] it does nothing. Anything written after a finish
+    /// never reaches the other peer.
+    ///
+    /// It never blocks, and it cannot be taken back.
     #[func]
     fn finish(&self) {
         if let Some(stream) = self.state.borrow().stream.as_ref() {
@@ -320,12 +346,15 @@ impl IrohStream {
         }
     }
 
-    /// Gives up on the stream and tells the far side why.
+    /// Ends the stream in both directions at once and tells the other peer
+    /// why.
     ///
-    /// Where [method close] just drops the stream and leaves the remote
-    /// to notice, this sends `code` in both directions, so a cancelled transfer
-    /// looks like a cancellation rather than a failure. The code is yours to
-    /// define; both ends have to agree what it means.
+    /// Where [method close] just drops the stream and leaves the other peer
+    /// to notice, this carries `code` across, so a cancel done on purpose
+    /// reads differently from a failure. What each code means is yours to
+    /// define, and both peers have to agree on it.
+    ///
+    /// Returns false when the stream is already gone, and nothing is sent.
     #[func]
     fn abort(&self, code: i64) -> bool {
         let code = code.clamp(0, u32::MAX as i64) as u32;
@@ -335,7 +364,17 @@ impl IrohStream {
         }
     }
 
-    /// Drops the stream entirely. Anything still queued is abandoned.
+    /// Drops the stream and stops reading it.
+    ///
+    /// Bytes already written still go out, and the other peer reads the same
+    /// clean end of stream that [method finish] gives them. What close
+    /// abandons is our reading half: buffered bytes are discarded, and
+    /// anything they send afterwards goes nowhere, with no error on their
+    /// side.
+    ///
+    /// After it, reads return [code]ERR_UNAVAILABLE[/code] at once and puts
+    /// report [code]ERR_FILE_EOF[/code]. It never tells the other peer why —
+    /// [method abort] is the one that carries a reason.
     #[func]
     fn close(&self) {
         let mut state = self.state.borrow_mut();

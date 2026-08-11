@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://clgc640hwg43n"]
+
+[ext_resource type="Script" uid="uid://cs7wtgayqyye0" path="res://samples/chat_two_window.gd" id="1_script"]
+
+[node name="ChatTwoWindowTest" type="VBoxContainer" unique_id=1499776731]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+script = ExtResource("1_script")
+
+[node name="Instructions" type="Label" parent="." unique_id=803791437]
+layout_mode = 2
+text = "run this scene in two separate instances. in one window, press \"copy my ticket\". paste it into the OS clipboard is enough — the other window reads it straight from there. then, in the other window, press \"join from clipboard\". watch the Output panel in both."
+autowrap_mode = 3
+
+[node name="copy_endpoint_to_clipboard" type="Button" parent="." unique_id=108633028]
+unique_name_in_owner = true
+layout_mode = 2
+text = "copy my ticket to clipboard"
+
+[node name="join_from_clipboard" type="Button" parent="." unique_id=331178469]
+unique_name_in_owner = true
+layout_mode = 2
+text = "join from clipboard"

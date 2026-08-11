@@ -68,6 +68,16 @@ impl Events {
     pub(crate) fn try_recv(&mut self) -> Option<Event> {
         self.0.try_recv().ok()
     }
+
+    /// Waits for the next event. `None` means every sender is gone — the
+    /// dial failed before starting the pump, or the runtime is not running.
+    ///
+    /// Same contract as [`Stream::recv_blocking`]: main thread only, and safe
+    /// there because the pump tasks keep feeding this channel from the
+    /// runtime while this thread waits.
+    pub(crate) fn recv_blocking(&mut self) -> Option<Event> {
+        self.0.blocking_recv()
+    }
 }
 
 /// Dials `peer` and speaks `alpn` to it.
